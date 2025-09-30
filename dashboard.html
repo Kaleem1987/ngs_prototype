@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; }
+    h1 { text-align: center; }
+    .chart-container { margin: 40px 0; }
+  </style>
+</head>
+<body>
+  <h1>Student Dashboard</h1>
+
+  <section class="chart-container">
+    <canvas id="totalMarksChart"></canvas>
+  </section>
+
+  <section class="chart-container">
+    <canvas id="avgMarksByQuestionChart"></canvas>
+  </section>
+
+  <section class="chart-container">
+    <canvas id="avgMarksByDifficultyChart"></canvas>
+  </section>
+
+  <section class="chart-container">
+    <canvas id="avgMarksByChapterChart"></canvas>
+  </section>
+
+  <script>
+    async function fetchJSON(url) {
+      const response = await fetch(url);
+      return await response.json();
+    }
+
+    function average(array) {
+      return array.reduce((a,b) => a+b,0) / array.length;
+    }
+
+    async function renderDashboard() {
+      const students = await fetchJSON('/api/students');
+      const difficulties = await fetchJSON('/api/difficulty');
+      const chapters = await fetchJSON('/api/chapter');
+
+      // Total marks chart
+      const totalCtx = document.getElementById('totalMarksChart').getContext('2d');
+      const studentLabels = students.map(s => s.student_id);
+      const studentTotals = students.map(s => s.total_marks);
+      new Chart(totalCtx, {
+        type: 'bar',
+        data: {
+          labels: studentLabels,
+          datasets: [{
+            label: 'Total Marks',
+            data: studentTotals,
+            backgroundColor: 'rgba(75, 192, 192, 0.6)'
+          }]
+        },
+        options: {
+          scales: { y: { beginAtZero: true } },
+          responsive: true
+        }
+      });
+
+      // Average marks per question
+      const questionCount = 10;
+      let marksSum = new Array(questionCount).fill(0);
+      students.forEach(s => {
+        for(let i=1;i<=questionCount;i++){
+          marksSum[i-1]+=s['Q'+i];
+        }
+      });
+      const avgMarksByQ = marksSum.map(sum => sum / students.length);
+
+      const avgQCtx = document.getElementById('avgMarksByQuestionChart').getContext('2d');
+      new Chart(avgQCtx, {
+        type: 'bar',
+        data: {
+          labels: Array.from({length: questionCount}, (_, i) => 'Q' + (i+1)),
+          datasets: [{
+            label: 'Average Marks',
+            data: avgMarksByQ,
+            backgroundColor: 'rgba(255, 206, 86, 0.7)'
+          }]
+        },
+        options: { scales: { y: { beginAtZero: true } }, responsive: true }
+      });
+
+      // Avg marks by difficulty
+      const diffLevels = [...new Set(difficulties.map(d => d.difficulty))].sort();
+      let avgByDifficulty = diffLevels.map(d => {
+        const questions = difficulties.filter(q => q.difficulty===d).map(q => q.question_number);
+        const marks = questions.map(q => avgMarksByQ[q-1]);
+        return average(marks);
+      });
+
+      const diffCtx = document.getElementById('avgMarksByDifficultyChart').getContext('2d');
+      new Chart(diffCtx, {
+        type: 'bar',
+        data: {
+          labels: diffLevels.map(d => 'Difficulty ' + d),
+          datasets: [{
+            label: 'Average Marks',
+            data: avgByDifficulty,
+            backgroundColor: 'rgba(255, 99, 132, 0.6)'
+          }]
+        },
+        options: { scales: { y: { beginAtZero: true } }, responsive: true }
+      });
+
+      // Avg marks by chapter
+      const uniqueChapters = [...new Set(chapters.map(c => c.chapter_number))].sort((a,b)=>a-b);
+      let avgByChapter = uniqueChapters.map(ch => {
+        const questions = chapters.filter(q => q.chapter_number===ch).map(q => q.question_number);
+        const marks = questions.map(q => avgMarksByQ[q-1]);
+        return average(marks);
+      });
+
+      const chapCtx = document.getElementById('avgMarksByChapterChart').getContext('2d');
+      new Chart(chapCtx, {
+        type: 'line',
+        data: {
+          labels: uniqueChapters.map(c => 'Chapter ' + c.toFixed(1)),
+          datasets: [{
+            label: 'Average Marks',
+            data: avgByChapter,
+            fill: true,
+            backgroundColor: 'rgba(54, 162, 235, 0.3)',
+            borderColor: 'rgba(54, 162, 235, 0.8)',
+            tension: 0.2
+          }]
+        },
+        options: { scales: { y: { beginAtZero: true } }, responsive: true }
+      });
+    }
+
+    renderDashboard();
+  </script>
+</body>
+</html>

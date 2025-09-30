@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mean Student Marks Chart</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>Mean Marks for Each Question</h2>
+  <canvas id="meanMarksChart" width="600" height="400"></canvas>
+
+  <script>
+    // Sample data: mean marks per question for 10 questions (replace with actual computed means)
+    const meanMarks = [7.1, 6.7, 7.3, 7.2, 6.8, 7.0, 6.9, 7.1, 7.4, 6.9];
+
+    const ctx = document.getElementById('meanMarksChart').getContext('2d');
+    const meanMarksChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10'],
+        datasets: [{
+          label: 'Mean Marks',
+          data: meanMarks,
+          backgroundColor: 'rgba(54, 162, 235, 0.6)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 10
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top'
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
